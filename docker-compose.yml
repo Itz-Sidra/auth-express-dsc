@@ -5,29 +5,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    develop:
-      watch:
-        - action: sync
-          path: /src
-          target: /app/src
-          ignore:
-            - node_modules
-            - .env
-            - .dockerignore
-            - .prettierignore
-        - action: rebuild
-          path: package.json
     container_name: auth-backend
     ports:
       - "4000:4000"
     volumes:
       - .:/app # Mount local files to the container
       - /app/node_modules
-    command: npm run dev
+    command: sh -c "npx prisma migrate deploy && npm run dev"
     depends_on:
-      - db
-      - redis
-      - prom-server
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      prom-server:
+        condition: service_started
     environment:
       - DATABASE_URL=postgresql://psql:mySecretKey@db:5432/postgres
       - REDIS_URL=redis://redis:6379
@@ -49,6 +40,11 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psql -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
@@ -57,6 +53,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   grafana:
     image: grafana/grafana-oss

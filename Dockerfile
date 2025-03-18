@@ -8,13 +8,11 @@ COPY package.json package-lock.json ./
 
 RUN npm install
 
-RUN npm install -g prisma
-
-RUN npm install --save-dev nodemon
-
 COPY . .
 
-RUN npx prisma generate
+RUN npx prisma generate 
+
+# COPY /app/prisma ./prisma
 
 EXPOSE 4000
 
