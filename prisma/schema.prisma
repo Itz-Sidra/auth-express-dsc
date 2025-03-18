@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -15,4 +14,10 @@ model User {
   password     String
   accessToken  String?
   refreshToken String?
+}
+
+model Blacklist {
+  id        String   @id @default(cuid())
+  token     String
+  createdAt DateTime @default(now())
 }
