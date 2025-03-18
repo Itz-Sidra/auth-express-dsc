@@ -6,6 +6,7 @@ import docsRouter from "./routes/docs.routes";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { healthCheck } from "./controller/health.controller";
+import metricsRouter from "./routes/metrics.routes";
 
 dotenv.config();
 const app = express();
@@ -18,5 +19,6 @@ app.use(cookieParser());
 app.use("/api/v1", userRouter);
 app.use("/api/v1", docsRouter);
 app.use("/api/v1/healthCheck", healthCheck);
+app.use("/", metricsRouter);
 
 export default app;
