@@ -16,7 +16,6 @@ export class RedisSingleton {
         throw new Error("Missing Redis environment variable: REDIS_URL");
       }
 
-      // Correct Redis connection
       this.instance = new Redis(redisUrl);
     }
     return this.instance;

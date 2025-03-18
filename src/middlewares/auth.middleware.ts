@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { getPrismaClient } from "../db/prisma";
 
 interface JwtPayload {
   id: string;
@@ -17,19 +18,22 @@ declare global {
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const header = req.header("Authorization");
-    if (!header) {
-      return res.status(401).json({ message: "No authorization header", success: false });
-    }
+    const token = req.cookies.access;
+    const prisma = getPrismaClient()
 
-    const token = header.split(" ")[1];
     if (!token) {
-      return res.status(401).json({ message: "Token missing", success: false });
+      return res.status(401).json({ message: "No authorization header", success: false });
     }
 
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({ message: "Missing secret key", success: false });
     }
+
+    const revoked = await prisma.blacklist.findFirst({
+      where: { token },
+    });
+
+    if (revoked) throw new Error("Token is revoked!");
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
     if (!decoded) {
@@ -40,7 +44,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     next();
   } catch (error) {
-    console.error("Auth error:", error);
+
     return res.status(403).json({
       message: error instanceof Error ? error.message : "Unauthorized",
       success: false,

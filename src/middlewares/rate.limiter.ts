@@ -19,7 +19,6 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
 
     const cacheKey = `ip:${ip}:${path}`;
 
-    // Memory cache check (fallback)
     let reqs = RateLimitCache.getIp(cacheKey);
     if (reqs >= LIMIT) {
       res.status(429).json({ message: "RATE-LIMIT", success: false });
@@ -28,7 +27,6 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
     
     RateLimitCache.incrementIp(cacheKey, WINDOW);
 
-    // Fetch requests count from Redis
     let reqs_redis_str = await redisClient.get(cacheKey);
     let reqs_redis = reqs_redis_str ? Number(reqs_redis_str) : 0;
 
@@ -37,7 +35,6 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    // Store updated count in Redis
     await redisClient.set(cacheKey, (reqs_redis + 1).toString(), "EX", WINDOW);
 
     next();

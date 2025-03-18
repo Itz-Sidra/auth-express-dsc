@@ -5,17 +5,17 @@ import {userRouter} from "./routes/user.routes";
 import healthCheckRouter from "./routes/healthCheck.routes";
 import docsRouter from "./routes/docs.routes";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser"
 
 dotenv.config();
 const app = express();
 
 
-// Middleware
-app.use(morgan("dev")); // Logger (similar to Hono's logger)
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse JSON body
+app.use(morgan("dev")); 
+app.use(cors()); 
+app.use(express.json()); 
+app.use(cookieParser())
 
-// Routes
 app.use("/api/v1", userRouter);
 app.use("/api/v1", docsRouter);
 app.use("/api/v1/healthCheck", healthCheckRouter);

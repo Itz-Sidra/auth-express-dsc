@@ -38,6 +38,7 @@ export class UserController {
       }
 
       const hashed = await hash(isValid.data.password);
+
       const { name, email } = isValid.data;
       const userId = createId();
 
@@ -49,7 +50,17 @@ export class UserController {
         },
       );
 
-      console.log("Control Reached!");
+      res.cookie("access", accessToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 1000, // milliseconds
+        path: "/"
+      });
+
+      res.cookie("token", refreshToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
+        path: "/"
+      });
 
       const user = await prisma.user.create({
         data: {
@@ -57,8 +68,7 @@ export class UserController {
           name,
           email,
           password: hashed,
-          accessToken,
-          refreshToken,
+          refreshToken
         },
       });
 
@@ -81,7 +91,6 @@ export class UserController {
           id: user.id,
           name: user.name,
           email: user.email,
-          refreshToken
         },
         success: true,
       });
@@ -375,6 +384,9 @@ export class UserController {
       await redisClient.del(`email:${user.email}`);
       await redisClient.del(`access:${id}`);
 
+      res.clearCookie("access", { path: "/" });
+      res.clearCookie("token", { path: "/" });
+
       return res.status(200).json({
         message: "User deleted!",
         success: true,
@@ -444,6 +456,18 @@ export class UserController {
         },
       });
 
+      res.cookie("access", accessToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 1000, // milliseconds
+        path: "/"
+      });
+
+      res.cookie("token", refreshToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
+        path: "/"
+      });
+
       const cacheData = {
         expiry: Math.floor(Date.now() / 1000) + 60 * 60,
         data: {
@@ -477,7 +501,7 @@ export class UserController {
 
   static async me(req: Request, res: Response) {
     try {
-      const payload = req.user; // Assuming authentication middleware sets this
+      const payload = req.user; 
 
       if (!payload) throw new Error("Unauthorized");
 
@@ -497,7 +521,7 @@ export class UserController {
 
   static async logout(req: Request, res: Response) {
     try {
-      const payload = req.user; // Assuming authentication middleware sets this
+      const payload = req.user; 
       if (!payload || !payload.id) {
         return res.status(401).json({
           error: "Unauthorized",
@@ -517,9 +541,23 @@ export class UserController {
           refreshToken: "",
         },
       });
+
+      const access = req.cookies.access;
+      const refresh = req.cookies.token;
+
+      await prisma.blacklist.createMany({
+        data: [{
+          token: access,
+        },{
+          token : refresh
+        }]
+      });
       
       MemoryCache.delete(`access:${userId}`);
       await redisClient.del(`access:${userId}`);
+      
+      res.clearCookie("access", { path: "/" });
+      res.clearCookie("token", { path: "/" });
       
       return res.status(200).json({
         message: "Logout successful!",
@@ -539,7 +577,7 @@ export class UserController {
       const prisma = getPrismaClient(); 
       const redisClient = RedisSingleton.getInstance();
   
-      const refreshToken = req.query.token as string;
+      const refreshToken = req.cookies.token;
   
       if (!refreshToken) {
         return res.status(400).json({
@@ -578,6 +616,18 @@ export class UserController {
         },
       });
   
+      res.cookie("access", accessToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 1000, // milliseconds
+        path: "/"
+      });
+
+      res.cookie("token", newRefreshToken, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
+        path: "/"
+      });
+  
       const cacheData = {
         expiry: exp,
         data: {
@@ -597,7 +647,6 @@ export class UserController {
           id: user.id,
           name: user.name,
           email: user.email,
-          refreshToken: newRefreshToken,
         },
         success: true,
       });
