@@ -10,10 +10,12 @@ RUN npm install
 
 RUN npm install -g prisma
 
+RUN npm install --save-dev nodemon
+
 COPY . .
 
 RUN npx prisma generate
 
 EXPOSE 4000
 
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]

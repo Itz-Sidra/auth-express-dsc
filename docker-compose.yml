@@ -5,6 +5,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: /src
+          target: /app/src
+          ignore:
+            - node_modules
+            - .env
+            - .dockerignore
+            - .prettierignore
+        - action: rebuild
+          path: package.json
     container_name: auth-backend
     ports:
       - "4000:4000"
@@ -24,6 +36,7 @@ services:
       - ACCESS_TOKEN_EXPIRES=15m
       - REFRESH_TOKEN_EXPIRES=7d
       - PORT=4000
+      - CHOKIDAR_USEPOLLING=true
 
   db:
     image: postgres:15
