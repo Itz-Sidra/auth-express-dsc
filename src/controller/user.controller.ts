@@ -7,6 +7,7 @@ import { loginSchema, registerSchema } from "../models/user.model";
 import { hash, verifyPassword } from "../utils/password.hash";
 import { generateToken } from "../utils/generateToken";
 import { MapData, UserMapData } from "../utils/types";
+import { logger } from "../utils/logger";
 
 export class UserController {
   static async postUser(req: Request, res: Response) {
@@ -93,6 +94,7 @@ export class UserController {
         success: true,
       });
     } catch (error) {
+      logger.error(error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : String(error),
         message: "Something went wrong!",
@@ -486,6 +488,7 @@ export class UserController {
         success: true,
       });
     } catch (error) {
+      logger.error(error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : String(error),
         message: "Something went wrong!",
