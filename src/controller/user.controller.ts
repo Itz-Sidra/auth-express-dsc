@@ -11,7 +11,7 @@ import { MapData, UserMapData } from "../utils/types";
 export class UserController {
   static async postUser(req: Request, res: Response) {
     try {
-      const prisma = getPrismaClient();  
+      const prisma = getPrismaClient();
       const redisClient = RedisSingleton.getInstance();
 
       const body = req.body;
@@ -42,24 +42,22 @@ export class UserController {
       const { name, email } = isValid.data;
       const userId = createId();
 
-      const { accessToken, refreshToken } = await generateToken(
-        {
-          id: userId,
-          email,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60,
-        },
-      );
+      const { accessToken, refreshToken } = await generateToken({
+        id: userId,
+        email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+      });
 
       res.cookie("access", accessToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
 
       res.cookie("token", refreshToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
 
       const user = await prisma.user.create({
@@ -68,7 +66,7 @@ export class UserController {
           name,
           email,
           password: hashed,
-          refreshToken
+          refreshToken,
         },
       });
 
@@ -136,7 +134,7 @@ export class UserController {
         });
       }
 
-      const prisma = getPrismaClient();  
+      const prisma = getPrismaClient();
       const user = await prisma.user.findUnique({
         where: { id },
         select: {
@@ -212,7 +210,7 @@ export class UserController {
         });
       }
 
-      const prisma = getPrismaClient(); 
+      const prisma = getPrismaClient();
       const user = await prisma.user.findFirst({
         where: { email },
         select: {
@@ -323,7 +321,6 @@ export class UserController {
         user,
         success: true,
       });
-
     } catch (error) {
       if (
         error instanceof Error &&
@@ -356,7 +353,7 @@ export class UserController {
         });
       }
 
-      const prisma = getPrismaClient();  
+      const prisma = getPrismaClient();
 
       const user = await prisma.user.findUnique({
         where: { id },
@@ -402,7 +399,7 @@ export class UserController {
 
   static async login(req: Request, res: Response) {
     try {
-      const prisma = getPrismaClient(); 
+      const prisma = getPrismaClient();
       const redisClient = RedisSingleton.getInstance();
 
       const body = req.body;
@@ -440,13 +437,11 @@ export class UserController {
         });
       }
 
-      const { accessToken, refreshToken } = await generateToken(
-        {
-          id: user.id,
-          email: user.email,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60,
-        },
-      );
+      const { accessToken, refreshToken } = await generateToken({
+        id: user.id,
+        email: user.email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+      });
 
       await prisma.user.update({
         where: { id: user.id },
@@ -459,13 +454,13 @@ export class UserController {
       res.cookie("access", accessToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
 
       res.cookie("token", refreshToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
 
       const cacheData = {
@@ -501,7 +496,7 @@ export class UserController {
 
   static async me(req: Request, res: Response) {
     try {
-      const payload = req.user; 
+      const payload = req.user;
 
       if (!payload) throw new Error("Unauthorized");
 
@@ -521,7 +516,7 @@ export class UserController {
 
   static async logout(req: Request, res: Response) {
     try {
-      const payload = req.user; 
+      const payload = req.user;
       if (!payload || !payload.id) {
         return res.status(401).json({
           error: "Unauthorized",
@@ -529,11 +524,11 @@ export class UserController {
           success: false,
         });
       }
-      
+
       const userId = payload.id;
-      const prisma = getPrismaClient();  
+      const prisma = getPrismaClient();
       const redisClient = RedisSingleton.getInstance();
-      
+
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -546,19 +541,22 @@ export class UserController {
       const refresh = req.cookies.token;
 
       await prisma.blacklist.createMany({
-        data: [{
-          token: access,
-        },{
-          token : refresh
-        }]
+        data: [
+          {
+            token: access,
+          },
+          {
+            token: refresh,
+          },
+        ],
       });
-      
+
       MemoryCache.delete(`access:${userId}`);
       await redisClient.del(`access:${userId}`);
-      
+
       res.clearCookie("access", { path: "/" });
       res.clearCookie("token", { path: "/" });
-      
+
       return res.status(200).json({
         message: "Logout successful!",
         success: true,
@@ -571,14 +569,14 @@ export class UserController {
       });
     }
   }
-  
+
   static async refresh(req: Request, res: Response) {
     try {
-      const prisma = getPrismaClient(); 
+      const prisma = getPrismaClient();
       const redisClient = RedisSingleton.getInstance();
-  
+
       const refreshToken = req.cookies.token;
-  
+
       if (!refreshToken) {
         return res.status(400).json({
           error: "Missing refresh token",
@@ -586,11 +584,11 @@ export class UserController {
           success: false,
         });
       }
-  
+
       const user = await prisma.user.findFirst({
         where: { refreshToken },
       });
-  
+
       if (!user) {
         return res.status(401).json({
           error: "Invalid refresh token",
@@ -598,16 +596,15 @@ export class UserController {
           success: false,
         });
       }
-  
-      const exp = Math.floor(Date.now() / 1000) + 60 * 60; 
-      const { accessToken, refreshToken: newRefreshToken } = await generateToken(
-        {
+
+      const exp = Math.floor(Date.now() / 1000) + 60 * 60;
+      const { accessToken, refreshToken: newRefreshToken } =
+        await generateToken({
           id: user.id,
           email: user.email,
           exp,
-        },
-      );
-  
+        });
+
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -615,19 +612,19 @@ export class UserController {
           refreshToken: newRefreshToken,
         },
       });
-  
+
       res.cookie("access", accessToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
 
       res.cookie("token", newRefreshToken, {
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 7 * 1000, // milliseconds
-        path: "/"
+        path: "/",
       });
-  
+
       const cacheData = {
         expiry: exp,
         data: {
@@ -635,11 +632,11 @@ export class UserController {
           meta: user.email,
         },
       } as MapData;
-  
+
       MemoryCache.setMemory(`access:${user.id}`, cacheData);
       await redisClient.set(`access:${user.id}`, JSON.stringify(cacheData));
       await redisClient.expire(`access:${user.id}`, 60 * 60);
-  
+
       return res.status(200).json({
         message: "Token refreshed successfully!",
         token: accessToken,
