@@ -1,8 +1,11 @@
 import express from "express";
-import { getMetrics } from "../controller/metrics.controller";
+import {
+  getMetrics,
+  metricsMiddleware,
+} from "../controller/metrics.controller";
 
 const router = express.Router();
 
-router.get("/metrics", getMetrics);
+router.get("/metrics", metricsMiddleware, getMetrics);
 
 export default router;

@@ -11,19 +11,21 @@ const reqResTime = new client.Histogram({
   buckets: [1, 50, 100, 200, 400, 500, 800, 1000, 2000],
 });
 
-// Counter to track total requests
 const totalRequests = new client.Counter({
-  name: "http_req_total",
+  name: "http_req_total_count",
   help: "Total number of requests",
   labelNames: ["method", "route"],
 });
 
-// Middleware to track metrics
+client.register.registerMetric(reqResTime);
+client.register.registerMetric(totalRequests);
+
 export const metricsMiddleware = (
   req: Request,
   res: Response,
   next: Function
 ) => {
+  //if stops working
   if (req.path === "/metrics") {
     return next();
   }
@@ -31,7 +33,7 @@ export const metricsMiddleware = (
   const route = req.route ? req.route.path : req.path;
   const start = Date.now();
   totalRequests.inc({ method: req.method, route });
-
+  // totalRequests.inc();
   res.on("finish", () => {
     const duration = Date.now() - start;
     reqResTime
@@ -45,6 +47,32 @@ export const metricsMiddleware = (
 
   next();
 };
+
+// Rate limiter block counter
+export const rateLimiterBlocks = new client.Counter({
+  name: "rate_limiter_blocks",
+  help: "Number of requests blocked by rate limiter",
+  labelNames: ["ip", "route"],
+});
+
+// Cache hits counter
+export const cacheHits = new client.Counter({
+  name: "cache_hits_total",
+  help: "Total number of cache hits",
+  labelNames: ["ip", "route"],
+});
+
+// Cache misses counter
+export const cacheMisses = new client.Counter({
+  name: "cache_misses_total",
+  help: "Total number of cache misses",
+  labelNames: ["ip", "route"],
+});
+
+export const cacheHitRatio = new client.Gauge({
+  name: "cache_hit_ratio",
+  help: "Cache hit ratio (hits / total requests)",
+});
 
 export const getMetrics = async (req: Request, res: Response) => {
   res.setHeader("Content-Type", client.register.contentType);
