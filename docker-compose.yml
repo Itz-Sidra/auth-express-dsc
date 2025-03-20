@@ -59,6 +59,13 @@ services:
       timeout: 5s
       retries: 5
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
   grafana:
     image: grafana/grafana-oss
     container_name: grafana
@@ -66,6 +73,7 @@ services:
       - "3000:3000"
     depends_on:
       - prom-server
+      - loki
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
@@ -84,3 +92,4 @@ volumes:
   db_data:
   redis_data:
   grafana_data:
+  loki_data:
